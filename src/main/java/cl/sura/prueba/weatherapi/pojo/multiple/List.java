@@ -1,14 +1,12 @@
 
 package cl.sura.prueba.weatherapi.pojo.multiple;
 
+import com.fasterxml.jackson.annotation.*;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -101,7 +99,16 @@ public class List {
 
     @JsonProperty("dt_txt")
     public String getDtTxt() {
-        return dtTxt;
+        String strDate;
+        try {
+            SimpleDateFormat sm = new SimpleDateFormat("yyyy-MM-dd");
+            Date date = sm.parse(dtTxt);
+            strDate = sm.format(date);
+        }catch (Exception e){
+            return dtTxt;
+        }
+
+        return strDate;
     }
 
     @JsonProperty("dt_txt")
@@ -117,6 +124,17 @@ public class List {
     @JsonAnySetter
     public void setAdditionalProperty(String name, Object value) {
         this.additionalProperties.put(name, value);
+    }
+
+    public boolean equals(Object other) {
+        if (other instanceof List) {
+            return ((List) other).getDtTxt().equals(this.getDtTxt());
+        } else {
+            return false;
+        }
+    }
+    public int hashCode() {
+        return this.getDtTxt().hashCode();
     }
 
 }

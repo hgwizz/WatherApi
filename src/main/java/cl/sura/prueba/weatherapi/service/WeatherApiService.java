@@ -2,7 +2,10 @@ package cl.sura.prueba.weatherapi.service;
 
 import cl.sura.prueba.weatherapi.exceptions.NoDataFoundException;
 import cl.sura.prueba.weatherapi.exceptions.NotAuthorizedException;
-import cl.sura.prueba.weatherapi.pojo.*;
+import cl.sura.prueba.weatherapi.pojo.CityWeather;
+import cl.sura.prueba.weatherapi.pojo.WeatherApi;
+import cl.sura.prueba.weatherapi.pojo.WeatherRequest;
+import cl.sura.prueba.weatherapi.pojo.Weathers;
 import cl.sura.prueba.weatherapi.pojo.multiple.ForeCastWeather;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +20,8 @@ import org.springframework.web.client.RestTemplate;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -35,14 +40,9 @@ public class WeatherApiService {
     private String unitCelsius;
     @Value("${api.unit.fahrenheit}")
     private String unitFahrenheit;
-    @Value("${api.number.week}")
-    private String apiWeek;
-
-
 
     @Autowired
     private RestTemplate restTemplate;
-
 
     public CityWeather getWeather(WeatherRequest weatherRequest) {
 
@@ -59,23 +59,35 @@ public class WeatherApiService {
 
             if (HttpStatus.OK.equals(responseEntity.getStatusCode())) {
                 if (responseEntity.getBody() instanceof WeatherApi) {
+
                     WeatherApi weatherApi = (WeatherApi) responseEntity.getBody();
+
                     response.setCityName(weatherApi.getName());
                     response.setCityCode(weatherApi.getSys().getCountry());
+
                     Weathers weathers = new Weathers();
-                    weathers.setDate(this.setDateFromMillis(weatherApi.getDt()));
+
+                    weathers.setDate(this.getCurrentDate());
                     weathers.setTemperature(weatherApi.getMain().getTemp().toString());
                     response.addWeather(weathers);
+
                 } else if (responseEntity.getBody() instanceof ForeCastWeather) {
+
                     ForeCastWeather foreCastWeather = (ForeCastWeather) responseEntity.getBody();
+
                     response.setCityName(foreCastWeather.getCity().getName());
                     response.setCityCode(foreCastWeather.getCity().getCountry());
 
-                    if (foreCastWeather.getList() != null) {
-                        for (cl.sura.prueba.weatherapi.pojo.multiple.List list : foreCastWeather.getList()) {
+                    if (foreCastWeather.getList() != null && !foreCastWeather.getList().isEmpty()) {
+
+                        List<cl.sura.prueba.weatherapi.pojo.multiple.List> temperatureDates = foreCastWeather.getList().stream().distinct().collect(Collectors.toList());
+
+                        for (cl.sura.prueba.weatherapi.pojo.multiple.List temperature : temperatureDates) {
+
                             Weathers weathers = new Weathers();
-                            weathers.setDate(this.setDateFromMillis(list.getDt()));
-                            weathers.setTemperature(list.getMain().getTemp().toString());
+
+                            weathers.setDate(temperature.getDtTxt());
+                            weathers.setTemperature(temperature.getMain().getTemp().toString());
                             response.addWeather(weathers);
                         }
                     }else
@@ -92,11 +104,12 @@ public class WeatherApiService {
         return restTemplate.exchange(url,HttpMethod.GET,null,clazz);
     }
 
-    private String setDateFromMillis(int millis){
-        Date currentDate = new Date(millis);
-        DateFormat df = new SimpleDateFormat("dd/MM/yy HH:mm:ss");
+    private String getCurrentDate(){
+        Date currentDate = new Date();
+        DateFormat df = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
         return df.format(currentDate);
     }
+
 
     private String buildUrl(String city, String unit, String dayOrWeek){
         StringBuffer urlCompose = new StringBuffer();
@@ -104,7 +117,7 @@ public class WeatherApiService {
         if ("W".equalsIgnoreCase(dayOrWeek))
             urlCompose.append(weatherAPIDailyUrl);
         else
-        urlCompose.append(weatherAPIUrl);
+            urlCompose.append(weatherAPIUrl);
 
         urlCompose.append(city);
 
@@ -112,9 +125,6 @@ public class WeatherApiService {
             urlCompose.append(unitFahrenheit);
         else
             urlCompose.append(unitCelsius);
-
-        if ("W".equalsIgnoreCase(dayOrWeek))
-            urlCompose.append(apiWeek);
 
         urlCompose.append(weatherApiKey);
 
