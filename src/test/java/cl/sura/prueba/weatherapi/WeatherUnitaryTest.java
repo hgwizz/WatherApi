@@ -76,7 +76,7 @@ public class WeatherUnitaryTest {
                 .andExpect(jsonPath("$.CityName").exists())
                 .andExpect(jsonPath("$.CityCode").exists())
                 .andExpect(jsonPath("$.Weather").exists())
-                .andExpect(jsonPath("$.Weather.[*]", hasSize(7)))
+                .andExpect(jsonPath("$.Weather.[*]", hasSize(6)))
                 .andDo(MockMvcResultHandlers.print());
     }
 
